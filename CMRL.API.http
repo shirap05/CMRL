@@ -1,0 +1,6 @@
+@CMRL.API_HostAddress = http://localhost:5021
+
+GET {{CMRL.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
