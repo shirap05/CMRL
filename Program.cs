@@ -1,15 +1,41 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 using CMRL.API.Data;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
-var config = builder.Configuration;
+
 // Database
-var connectionString =
-    Environment.GetEnvironmentVariable("DATABASE_URL")
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+string connectionString;
+
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    var uri = new Uri(databaseUrl);
+    var userInfo = uri.UserInfo.Split(':');
+
+    var npgsqlBuilder = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port,
+        Username = userInfo[0],
+        Password = userInfo[1],
+        Database = uri.AbsolutePath.Trim('/'),
+        SslMode = SslMode.Require,
+        TrustServerCertificate = true
+    };
+
+    connectionString = npgsqlBuilder.ConnectionString;
+}
+else
+{
+    connectionString =
+        builder.Configuration.GetConnectionString("DefaultConnection")!;
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -33,13 +59,13 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
+        IssuerSigningKey =
+            new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(secretKey!))
     };
 });
 
-// builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql())
-
-// CORS - Allow any localhost port
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
@@ -49,50 +75,60 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
+
+// Services
 builder.Services.AddScoped<CMRL.API.Services.EmailService>();
+
+// Controllers
 builder.Services.AddControllers();
+
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Enter your JWT token like this: Bearer {your token}"
+        In = ParameterLocation.Header,
+        Description = "Enter: Bearer {your JWT token}"
     });
 
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            new OpenApiSecurityScheme
             {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                Reference = new OpenApiReference
                 {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });
-//builder.Services.AddHostedService<CMRL.API.Services.AbsentMarkerService>();
+
+// Disabled temporarily while deploying on Render
+// builder.Services.AddHostedService<CMRL.API.Services.AbsentMarkerService>();
+
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Enable Swagger in all environments
+app.UseSwagger();
+app.UseSwaggerUI();
 
-// app.UseHttpsRedirection(); // Disabled for local mobile testing
 app.UseCors("AllowAngular");
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
+
+// Health check endpoint
 app.MapGet("/", () => "CMRL API Running");
 
 app.Run();
