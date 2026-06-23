@@ -79,7 +79,7 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
-builder.Services.AddHostedService<CMRL.API.Services.AbsentMarkerService>();
+//builder.Services.AddHostedService<CMRL.API.Services.AbsentMarkerService>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
