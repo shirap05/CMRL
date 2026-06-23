@@ -130,5 +130,5 @@ app.MapControllers();
 
 // Health check endpoint
 app.MapGet("/", () => "CMRL API Running");
-
+app.MapGet("/health", () => Results.Ok("Healthy"));
 app.Run();
