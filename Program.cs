@@ -81,7 +81,10 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "https://cmrl-frontend.onrender.com",
-                "http://localhost:4200"
+                "http://localhost:4200",
+                "http://localhost",
+                "capacitor://localhost",
+                "https://localhost"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -105,6 +108,7 @@ builder.Services.AddControllers();
 // =========================
 
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -133,8 +137,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Disabled temporarily
-// builder.Services.AddHostedService<CMRL.API.Services.AbsentMarkerService>();
+// =========================
+// BUILD APP
+// =========================
 
 var app = builder.Build();
 
