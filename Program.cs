@@ -8,7 +8,10 @@ using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database
+// =========================
+// DATABASE
+// =========================
+
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
 string connectionString;
@@ -25,8 +28,7 @@ if (!string.IsNullOrEmpty(databaseUrl))
         Username = userInfo[0],
         Password = userInfo[1],
         Database = uri.AbsolutePath.Trim('/'),
-        SslMode = SslMode.Require,
-        TrustServerCertificate = true
+        SslMode = SslMode.Require
     };
 
     connectionString = npgsqlBuilder.ConnectionString;
@@ -40,7 +42,10 @@ else
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// JWT Authentication
+// =========================
+// JWT AUTHENTICATION
+// =========================
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];
 
@@ -65,7 +70,10 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// =========================
 // CORS
+// =========================
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
@@ -80,13 +88,22 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Services
+// =========================
+// SERVICES
+// =========================
+
 builder.Services.AddScoped<CMRL.API.Services.EmailService>();
 
-// Controllers
+// =========================
+// CONTROLLERS
+// =========================
+
 builder.Services.AddControllers();
 
-// Swagger
+// =========================
+// SWAGGER
+// =========================
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -116,10 +133,14 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Disabled temporarily while deploying on Render
+// Disabled temporarily
 // builder.Services.AddHostedService<CMRL.API.Services.AbsentMarkerService>();
 
 var app = builder.Build();
+
+// =========================
+// AUTO MIGRATION FOR RENDER
+// =========================
 
 using (var scope = app.Services.CreateScope())
 {
@@ -127,7 +148,13 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        Console.WriteLine("DATABASE CONNECTED");
+        Console.WriteLine("=================================");
+        Console.WriteLine("APPLYING DATABASE MIGRATIONS...");
+        Console.WriteLine("=================================");
+
+        db.Database.Migrate();
+
+        Console.WriteLine("MIGRATIONS APPLIED SUCCESSFULLY");
 
         var userCount = db.Users.Count();
 
@@ -135,12 +162,17 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Console.WriteLine("DB ERROR:");
+        Console.WriteLine("=================================");
+        Console.WriteLine("DATABASE ERROR");
+        Console.WriteLine("=================================");
         Console.WriteLine(ex.ToString());
     }
 }
 
-// Enable Swagger in all environments
+// =========================
+// MIDDLEWARE
+// =========================
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -151,7 +183,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Health check endpoint
+// =========================
+// HEALTH CHECKS
+// =========================
+
 app.MapGet("/", () => "CMRL API Running");
 app.MapGet("/health", () => Results.Ok("Healthy"));
+
 app.Run();
