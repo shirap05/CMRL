@@ -79,13 +79,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAngular", policy =>
     {
         policy
-            .WithOrigins(
-                "https://cmrl-frontend.onrender.com",
-                "http://localhost:4200",
-                "http://localhost",
-                "capacitor://localhost",
-                "https://localhost"
-            )
+            .AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
