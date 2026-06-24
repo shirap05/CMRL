@@ -121,6 +121,25 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    try
+    {
+        Console.WriteLine("DATABASE CONNECTED");
+
+        var userCount = db.Users.Count();
+
+        Console.WriteLine($"USERS COUNT = {userCount}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("DB ERROR:");
+        Console.WriteLine(ex.ToString());
+    }
+}
+
 // Enable Swagger in all environments
 app.UseSwagger();
 app.UseSwaggerUI();

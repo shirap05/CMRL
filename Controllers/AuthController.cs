@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using CMRL.API.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CMRL.API.Controllers
 {
@@ -21,6 +22,7 @@ namespace CMRL.API.Controllers
             _configuration = configuration;
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
